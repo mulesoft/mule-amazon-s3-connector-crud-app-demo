@@ -1,0 +1,19 @@
+{
+  "domain": "default",
+  "configs": [
+    "s3-crud-app.xml"
+  ],
+  "redeploymentEnabled": true,
+  "name": "s3-crud-app",
+  "minMuleVersion": "4.0.0-rc-SNAPSHOT",
+  "classLoaderModelLoaderDescriptor": {
+    "id": "mule",
+    "attributes": {
+      "exportedResources": []
+    }
+  },
+  "bundleDescriptorLoader": {
+    "id": "mule",
+    "attributes": {}
+  }
+}

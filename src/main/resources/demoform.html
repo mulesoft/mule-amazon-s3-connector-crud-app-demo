@@ -1,0 +1,474 @@
+<!--
+
+    (c) 2003-2016 MuleSoft, Inc. The software in this package is
+    published under the terms of the Commercial Free Software license V.1, a copy of which
+    has been included with this distribution in the LICENSE.md file.
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/4.4.0/bootbox.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.blockUI/2.70/jquery.blockUI.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
+</head>
+<body>
+    <style>
+        body {
+            padding-top: 40px;
+            padding-bottom: 40px;
+            background-color: #eee;
+        }
+        .demo-form {
+            max-width: 500px;
+            padding: 15px;
+            margin: 0 auto;
+        }
+        .demo-form .demo-heading,
+        .demo-form .checkbox {
+            margin-bottom: 10px;
+        }
+        .demo-form .checkbox {
+            font-weight: normal;
+        }
+        .demo-form .form-control {
+            position: relative;
+            height: auto;
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .demo-form .form-control:focus {
+            z-index: 2;
+        }
+
+        input,
+        select,
+        textarea,
+        .btn {
+            margin-bottom: 20px;
+        }
+        textarea {
+            min-width: 100%;
+            min-height: 100%;
+            font-family:monospace;
+        }
+        .btn-file {
+            position: relative;
+            overflow: hidden;
+            padding: 11px;
+        }
+        .btn-file input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            min-width: 100%;
+            min-height: 100%;
+            font-size: 100px;
+            text-align: right;
+            filter: alpha(opacity=0);
+            opacity: 0;
+            outline: none;
+            background: white;
+            cursor: inherit;
+            display: block;
+        }
+        .modal .modal-body {
+            max-height: 500px;
+            overflow-y: scroll;
+        }
+    </style>
+    
+    <script type="text/javascript">
+
+        var btn = null;
+        var defaultMessage = 'Unable to process operation. Check the Studio console for more details.';
+        var demoController = {
+
+            init : function(){
+                // improves the display name of the selected file
+                demoController.configureFileSelection();
+                // validates required fields 
+                // and dynamically executes functions based on the triggering button
+                $('button[type=submit]').click(function(e){
+                    demoController.validateFormAndSubmit($(this), e);
+                });
+            },
+
+            // ------ UTILS ------ //
+
+            validateFormAndSubmit : function(btn, mouseEvent){
+                // 'e' contains the clicked button
+                var formId = btn.closest('form').attr('id');
+                if(demoController.validateRequiredFields(formId)){
+                    // trigger spinner
+                    btn.button('loading');
+                    setTimeout(function () {
+                        btn.button('reset');
+                    }, 3000);
+                    // execute function based on the button ID
+                    var fnParts = btn.attr('id').split('-');
+                    var fnString = 'demoController.' + fnParts[1] + fnParts[2].charAt(0).toUpperCase() + fnParts[2].slice(1);
+                    eval(fnString)(mouseEvent);
+                }
+            },
+
+            validateRequiredFields : function(formId){
+                var inputs = $("#"+ formId + " input[required]");
+                var empty = true;
+                $.each(inputs, function(){
+                    if (!this.value) {
+                        empty = false;
+                    }
+                });
+                return empty;
+            },
+
+            changeTabs : function(deactivateTabId, deactivatePanelId, activateTabId, activatePanelId){
+                // tab link
+                $('#' + deactivateTabId).removeClass('active');
+                $('#' + activateTabId).addClass('active');
+                // tab panels
+                $('#' + deactivatePanelId).removeClass('active');
+                $('#' + activatePanelId).addClass('active');
+            },
+
+            configureFileSelection : function(){
+                $('.btn-file :file').on('change', function(){
+                    var input = $(this),
+                        numFiles = input.get(0).files ? input.get(0).files.length : 1,
+                        label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+                    $(this).parent().parent().prev().val(label);
+                });
+            },
+
+            blockPage : function(){
+                var message = "Processing...";
+                var loaderUrl = "http://i.giphy.com/lijuimVKUcwRa.gif";
+                $('html').block({
+                    message : '<h4>'+message+'<br><br><img src='+loaderUrl+ ' height=32 width=32/></h4>',
+                    overlayCSS : {
+                        backgroundColor : '#000',
+                        opacity : 0.2,
+                        cursor : 'wait'
+                    },
+                    css : {
+                        padding : 20,
+                        margin : 0,
+                        top: '50%', 
+                        left: '50%',
+                        width : '250px',
+                        textAlign : 'center',
+                        color : '#000',
+                        border : '0px solid #aaa',
+                        cursor : 'wait',
+                        '-webkit-border-radius' : '5px',
+                        '-moz-border-radius' : '5px',
+                    }
+                });
+            },
+    
+            unBlockPage : function(){
+                $('html').unblock();
+            },     
+
+            handleResponse : function(response){
+                // API or Connection exception + Generic errors
+                if(!response || !response.success){
+                    bootbox.alert(response.error ? response.error : defaultMessage);
+                    return false;
+                }
+                return true;
+            },
+
+            // ------ Buckets ------ //
+
+            createBucket : function(e){
+                e.preventDefault();
+                demoController.blockPage();
+
+                $.ajax({
+                    type: 'GET',
+                    url: '/createBucket?' + $.param({"bucketname": $('#create-bucket-form input[name="bname"]').val()}),
+                   	success: function(data) {
+                        if(demoController.handleResponse(data)){
+                            $('#create-bucket-form textarea').val(JSON.stringify(data.info, null, 2));
+                        }   
+                    },
+                    error: function(request, status, error){
+                        demoController.handleResponse(error);
+                    }
+                }).always(function(){
+                    demoController.unBlockPage();
+                });
+                return false;
+            },
+
+            listBuckets : function(e){
+            	e.preventDefault();
+                demoController.blockPage();
+
+                $.ajax({
+                    type: 'GET',
+                    url: '/listBuckets',
+                   	success: function(data) {
+                        if(demoController.handleResponse(data)){
+                            if(jQuery.isEmptyObject(data.info)){
+                        		$('#list-buckets-form textarea').val("No Buckets Found.");
+                        	}else{
+                            	$('#list-buckets-form textarea').val(JSON.stringify(data.info));
+                        	}
+                        }   
+                    },
+                    error: function(request, status, error){
+                        demoController.handleResponse(error);
+                    }
+                }).always(function(){
+                    demoController.unBlockPage();
+                });
+                return false;
+            },
+
+            deleteBucket : function(e){
+                e.preventDefault();
+                demoController.blockPage();
+
+                $.ajax({
+                    type: 'DELETE',
+                    url: '/deleteBucket?' + $.param({"bucketname": $('#delete-bucket-form input[name="bname"]').val()}),
+                   	success: function(data) {
+                        if(demoController.handleResponse(data)){
+                            $('#delete-bucket-form textarea').val(JSON.stringify(data.info));
+                        }   
+                    },
+                    error: function(request, status, error){
+                        demoController.handleResponse(error);
+                    }
+                }).always(function(){
+                    demoController.unBlockPage();
+                });
+                return false;
+            },
+
+            // ------ OBJECTS ------ //
+
+            createObject : function(e){
+                e.preventDefault();
+                demoController.blockPage();
+				
+                var $form = $("#create-object-form");
+                var formData = new FormData();
+                formData.append('fileContent', $form.find('input[name="content"]')[0].files[0]);
+                formData.append('fileName', $form.find('input[name="name"]').val());
+                formData.append('bucketname', $form.find('input[name="bname"]').val());
+                                
+                $.ajax({
+                    type: 'POST',
+                    url: '/createObject',
+                    contentType : false,
+                    processData : false,
+                    data: formData,
+                    success: function(data) {
+                        if(demoController.handleResponse(data)){
+                        	bootbox.alert(data.info);
+                        }
+                    },
+                    error: function(request, status, error){
+                        demoController.handleResponse(error);
+                    }
+                }).always(function(){
+                    demoController.unBlockPage();
+                });
+                return false;
+            },
+
+            listObjects : function(e){
+                e.preventDefault();
+                demoController.blockPage();
+
+                $.ajax({
+                    type: 'GET',
+                    url: '/listObjects?' + $.param({"bucketname": $('#list-objects-form input[name="bname"]').val()}),
+                    success: function(data) {
+                        if(demoController.handleResponse(data)){
+                        	if(jQuery.isEmptyObject(data.info)){
+                        		$('#list-objects-form textarea').val("No Objects Found.");
+                        	}else{
+                            	$('#list-objects-form textarea').val(JSON.stringify(data.info));
+                        	}
+                        }
+                    },
+                    error: function(request, status, error){
+                        demoController.handleResponse(error);
+                    }
+                }).always(function(){
+                    demoController.unBlockPage();
+                });
+                return false;
+            },
+            deleteObject : function(e){
+                e.preventDefault();
+                demoController.blockPage();
+                
+                $.ajax({
+                    type: 'DELETE',
+                    url: '/deleteobject?' + $.param({"name": $('#delete-object-form input[name="name"]').val(),
+                    								 "bucketname": $('#delete-object-form input[name="bname"]').val()}),
+                    success: function(data) {
+                        if(demoController.handleResponse(data)){
+                            bootbox.alert('Object was deleted successfully.');
+                        }
+                    },
+                    error: function(request, status, error){
+                        demoController.handleResponse(error);
+                    }
+                }).always(function(){
+                    demoController.unBlockPage();
+                });
+                return false;
+            }
+        }
+
+    $(document).ready( function() {
+        demoController.init();
+    });
+
+    </script>
+
+    <div class="container">
+        <h3>S3 Connector Demo - Buckets & Objects</h3>
+        <hr>
+        <div class="panel-group" id="accordion">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h2 class="panel-title demo-heading">
+                         <a data-toggle="collapse" data-parent="#accordion" href="#file-div">Buckets</a>
+                    </h2>
+                </div>
+                <div id="file-div" class="panel-collapse collapse in">
+                    <div class="panel-body">
+                        <!-- bucket nav tabs -->
+                        <ul id="tabs1" class="nav nav-tabs" role="tablist">
+                            <li id="create-bucket-tab" role="presentation" class="active">
+                                <a href="#create-bucket-tab-panel" aria-controls="create-bucket-form" role="tab" data-toggle="tab">Create Bucket</a>
+                            </li>
+                            <li id="list-buckets-tab" role="presentation">
+                                <a href="#list-buckets-tab-panel" aria-controls="list-buckets-form" role="tab" data-toggle="tab">List Buckets</a>
+                            </li>
+                            <li id="delete-bucket-tab" role="presentation">
+                                <a href="#delete-bucket-tab-panel" aria-controls="delete-bucket-form" role="tab" data-toggle="tab">Delete Bucket</a>
+                            </li>
+                        </ul>
+                        <!-- bucket tab panels -->
+                        <div class="tab-content">
+                            <!-- create -->
+                            <div class="tab-pane active" id="create-bucket-tab-panel" role="tabpanel">
+                                <form id="create-bucket-form" class="demo-form" role="form">
+                                	<label>Bucket Name</label>
+                                    <input type="text" name="bname" class="form-control" required>
+                                    <button type="submit" class="btn btn-lg btn-primary btn-block" id="btn-create-bucket">Create Bucket</button>
+                                    <label>Result</label>
+                                    <textarea name="info" rows="10"></textarea>
+                              </form>
+                            </div>
+                            <!-- liLst -->
+                            <div class="tab-pane" id="list-buckets-tab-panel" role="tabpanel">
+                                <form id="list-buckets-form" class="demo-form" role="form">
+                                    <button type="submit" class="btn btn-lg btn-primary btn-block" id="btn-list-buckets">List Buckets</button>
+                                    <label>Result</label>
+                                    <textarea name="info" rows="10"></textarea>
+                                </form>
+                            </div>
+                            <!-- delete -->
+                            <div class="tab-pane" id="delete-bucket-tab-panel" role="tabpanel">
+                                <form id="delete-bucket-form" class="demo-form" role="form">
+                                	<label>Bucket Name</label>
+                                    <input type="text" name="bname" class="form-control" required>
+                                    <button type="submit" class="btn btn-lg btn-primary btn-block" id="btn-delete-bucket">Delete Bucket</button>
+                                    <label>Result</label>
+                                    <textarea name="info" rows="10"></textarea>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h2 class="panel-title demo-heading">
+                         <a data-toggle="collapse" data-parent="#accordion" href="#folder-div">Objects</a>
+                    </h2>
+                </div>
+                <div id="folder-div" class="panel-collapse collapse">
+                    <div class="panel-body">
+                        <!-- folder nav tabs -->
+                        <ul id="tabs2" class="nav nav-tabs" role="tablist">
+                            <li id="create-object-tab" role="presentation" class="active">
+                                <a href="#create-object-tab-panel" aria-controls="create-object-form" role="tab" data-toggle="tab">Create Object</a>
+                            </li>
+                            <li id="list-objects-tab" role="presentation">
+                                <a href="#list-objects-tab-panel" aria-controls="list-objects-form" role="tab" data-toggle="tab">List Objects</a>
+                            </li>
+                            <li id="delete-object-tab" role="presentation">
+                                <a href="#delete-object-tab-panel" aria-controls="delete-object-form" role="tab" data-toggle="tab">Delete Object</a>
+                            </li>
+                        </ul>
+                        <!-- folder tab panels -->
+                        <div class="tab-content">
+                            <!-- create objects-->
+                            <div role="tabpanel" class="tab-pane active" id="create-object-tab-panel">
+                                <form id="create-object-form" class="demo-form" role="form">
+                                    <label>Choose a file</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" readonly>
+                                        <span class="input-group-btn">
+                                            <span class="btn btn-warning btn-file">
+                                                <i class="fa fa-folder-open-o"></i>
+                                                <input type="file" name="content" required>
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <label>Name</label>
+                                    <input type="text" name="name" class="form-control" required>
+                                    <label>Bucket Name</label>
+                                    <input type="text" name="bname" class="form-control" required>
+                                    <button type="submit" class="btn btn-lg btn-primary btn-block" id="btn-create-object">Create Object</button>
+                                </form>
+                            </div>
+                            <!-- list objects -->
+                            <div role="tabpanel" class="tab-pane" id="list-objects-tab-panel">
+                                <form id="list-objects-form" class="demo-form" role="form">
+                                	<label>Bucket Name</label>
+                                    <input type="text" name="bname" class="form-control" required>
+                                    <button type="submit" class="btn btn-lg btn-primary btn-block" id="btn-list-objects">List Objects</button>
+                                    <label>Result</label>
+                                    <textarea name="info" rows="10"></textarea>
+                                </form>
+                            </div>
+                            <!-- delete object-->
+                            <div role="tabpanel" class="tab-pane" id="delete-object-tab-panel">
+                                <form id="delete-object-form" class="demo-form" role="form">
+                                    <label>File Name</label>
+                                    <input type="text" name="name" class="form-control" required>
+                                    <label>Bucket Name</label>
+                                    <input type="text" name="bname" class="form-control" required>
+                                    <button type="submit" class="btn btn-lg btn-primary btn-block" id="btn-delete-object">Delete Object</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

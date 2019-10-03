@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:s3="http://www.mulesoft.org/schema/mule/s3"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<configuration-properties file="mule-artifact.properties" />
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="e7044a7b-ff55-4660-b791-6ccdccb8de9a" >
+		<http:listener-connection host="127.0.0.1" port="8081" />
+	</http:listener-config>
+	<s3:config name="Amazon_S3_S3_configuration" doc:name="Amazon S3 S3 configuration" doc:id="143ba21b-49ef-4934-80d3-308eb5add93a" >
+		<s3:basic-connection accessKey="${config.accessKey}" secretKey="${config.secretKey}" />
+	</s3:config>
+	<flow name="html-form-flow" doc:id="b74d5230-5da7-426d-a55d-72e352306dbf" >
+		<http:listener config-ref="HTTP_Listener_config" path="/" doc:name="Listener" doc:id="0c664dca-3ed3-4f1b-9f97-920011e2e2ac">
+			<http:response>
+				<http:headers><![CDATA[#[{'content-type' : 'text/html'}]]]></http:headers>
+			</http:response>
+		</http:listener>
+		<parse-template location="demoform.html" doc:name="Parse Template" doc:id="2897b00a-b7aa-4747-aa7a-5c05f437e395" />
+	</flow>
+	<flow name="create-bucket-flow" doc:id="cbbb80b0-2c7d-4083-bce9-3dba91156347" >
+		<http:listener config-ref="HTTP_Listener_config" path="/createBucket" doc:name="Listener" doc:id="e6d50d09-a406-467e-8722-f3ae3d5c56cd" />
+		<ee:transform doc:name="Transform Message" doc:id="1e2df6ac-e2cd-4e1f-831c-549729f1bacb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+bucketname:attributes.queryParams.bucketname
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<s3:create-bucket config-ref="Amazon_S3_S3_configuration" bucketName="#[payload.bucketname]" doc:name="Create bucket" doc:id="dfcdfd8e-45c4-4bd2-86ec-24f3a33bfbb5"/>
+		<logger level="INFO" doc:name="Logger" doc:id="f4a2fb03-12d2-428b-bf28-c49a198a62b2" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="11ced3c5-c3df-416c-a133-be39ad225668" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+success: true,
+    info: payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="list-buckets-flow" doc:id="f9dd527a-c777-4800-a3a8-490e5e5c5c45" >
+		<http:listener config-ref="HTTP_Listener_config" path="/listBuckets" doc:name="Listener" doc:id="de37d51c-9213-4ee0-a09c-e72b83065dcd" />
+		<logger level="INFO" doc:name="Logger" doc:id="ede5f7c2-539d-459c-93e9-7b20e04bf701" message="hello"/>
+		<s3:list-buckets config-ref="Amazon_S3_S3_configuration" doc:name="List buckets" doc:id="23f855c8-915b-43de-9063-64de4d9b41b5" />
+		<logger level="INFO" doc:name="Logger" doc:id="0ba01909-098a-4694-ac26-bde1c8c84be5" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="72b409a6-86bb-4e8c-a009-d3f4b347c7bf" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+success: true,
+info:payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="delete-bucket-flow" doc:id="e015476a-2424-4fea-b391-d0ea7d494c59" >
+		<http:listener config-ref="HTTP_Listener_config" path="/deleteBucket" doc:name="Listener" doc:id="bb3411f1-11a1-4e58-a2e6-9de3924c7240" />
+		<ee:transform doc:name="Transform Message" doc:id="ec3d7a97-9fe8-4a32-9e8d-8167a34851d8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+bucketname : attributes.queryParams.bucketname
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<s3:delete-bucket config-ref="Amazon_S3_S3_configuration" bucketName="#[payload.bucketname]" doc:name="Delete bucket" doc:id="de78cd38-67cf-42c7-a4fa-798308600ce1" />
+		<ee:transform doc:name="Transform Message" doc:id="7e41e267-bd0b-4931-962a-ea3c0599f8b8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+success: true,
+    info: payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="delete-object-flow" doc:id="ffcfb577-2099-4f2c-9b71-f52d95a1a4ca" >
+		<http:listener config-ref="HTTP_Listener_config" path="/deleteobject" doc:name="Listener" doc:id="41824367-eb2a-4096-8da6-0e2efb387056" />
+		<ee:transform doc:name="Transform Message" doc:id="0cab993a-888d-46a6-8089-b09fbd7ae66c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+name : attributes.queryParams.name,
+	bucketname : attributes.queryParams.bucketname
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<s3:delete-object config-ref="Amazon_S3_S3_configuration" bucketName="#[payload.bucketname]" key="#[payload.name]" doc:name="Delete object" doc:id="6167fc3f-2d65-4b10-be27-126e0e169afd" />
+		<logger level="INFO" doc:name="Logger" doc:id="3dd8c267-9c0c-48af-b31a-264e93e94b35" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="3df1acfe-dbe5-4e6f-97c4-8ea64a39d696" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+success: true,
+    info: payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="create-object-flow" doc:id="d2ca3682-7c00-4076-8d9f-3dfae0aa2ef2" >
+		<http:listener config-ref="HTTP_Listener_config" path="/createObject" doc:name="Listener" doc:id="01476a4d-f50a-435e-a981-80057a06b70f" />
+		<ee:transform doc:name="Transform Message" doc:id="6e275ce8-f053-4805-8ee0-653e30ad79cc" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	name : payload.parts.fileName.content,
+	bucketname : payload.parts.bucketname.content,
+	content : payload.parts.fileContent.content
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<s3:create-object config-ref="Amazon_S3_S3_configuration" bucketName="#[payload.bucketname]" key="#[payload.name]" doc:name="Create object" doc:id="b228e5e1-b6c1-4fac-b132-5fa134abe904" acl="PUBLIC_READ" >
+			<s3:object-content ><![CDATA[#[payload.content]]]></s3:object-content>
+		</s3:create-object>
+		<logger level="INFO" doc:name="Logger" doc:id="0e072945-0bfb-48c2-a39d-4e3ddcffb9e3" message="#[payload.etag]"/>
+		<ee:transform doc:name="Transform Message" doc:id="c405c23d-231f-461c-8a17-cd256ba7c366" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+success: true,
+    info: payload.etag
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="list-objects" doc:id="71b54521-4024-41af-aa8f-1f9f6c5954a0" >
+		<http:listener config-ref="HTTP_Listener_config" path="/listObjects" doc:name="Listener" doc:id="a698010d-63f4-497b-ae32-4397194fe336" />
+		<ee:transform doc:name="Transform Message" doc:id="26f23d44-f712-4288-a009-f7682ec17e30" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+bucketname : attributes.queryParams.bucketname
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<s3:list-objects config-ref="Amazon_S3_S3_configuration" bucketName="#[payload.bucketname]" doc:name="List objects" doc:id="96f241d8-7a6d-4687-9552-f9f365927c9d" />
+		<ee:transform doc:name="Transform Message" doc:id="c9ccfd1e-ec53-423a-aa2c-cc30ff8bf1de" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+success: true,
+    info: payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
+
