@@ -3,17 +3,15 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.mycompany</groupId>
+	<groupId>org.mule.examples</groupId>
 	<artifactId>s3-crud-app</artifactId>
     <version>1.0.0</version>
     <packaging>mule-application</packaging>
-
 	<name>s3-crud-app</name>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-
 		<app.runtime>4.1.3</app.runtime>
 		<mule.maven.plugin.version>3.2.7</mule.maven.plugin.version>
 	</properties>
@@ -26,6 +24,7 @@
 				<version>${mule.maven.plugin.version}</version>
 				<extensions>true</extensions>
 				<configuration>
+					<classifier>mule-application-example</classifier>
 				</configuration>
 			</plugin>
 		</plugins>
