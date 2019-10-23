@@ -5,7 +5,7 @@
   ],
   "redeploymentEnabled": true,
   "name": "s3-crud-app",
-  "minMuleVersion": "4.0.0-rc-SNAPSHOT",
+  "minMuleVersion": "4.1.1",
   "classLoaderModelLoaderDescriptor": {
     "id": "mule",
     "attributes": {
