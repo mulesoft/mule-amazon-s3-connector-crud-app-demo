@@ -3,9 +3,9 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>org.mule.examples</groupId>
+	<groupId>com.mulesoft.connectors.examples</groupId>
 	<artifactId>s3-crud-app</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <packaging>mule-application</packaging>
 	<name>s3-crud-app</name>
 
