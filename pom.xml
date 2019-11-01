@@ -5,8 +5,8 @@
 
 	<groupId>com.mulesoft.connectors.examples</groupId>
 	<artifactId>s3-crud-app</artifactId>
-    <version>1.0.3</version>
-    <packaging>mule-application</packaging>
+    	<version>1.0.3</version>
+    	<packaging>mule-application</packaging>
 	<name>s3-crud-app</name>
 
 	<properties>
@@ -48,7 +48,7 @@
 		<dependency>
 			<groupId>com.mulesoft.connectors</groupId>
 			<artifactId>mule-amazon-s3-connector</artifactId>
-			<version>5.3.0</version>
+			<version>5.4.0</version>
 			<classifier>mule-plugin</classifier>
 		</dependency>
 	</dependencies>
